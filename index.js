@@ -28,6 +28,7 @@ async function run() {
         await client.connect();
         const menuCollection = client.db('bistroRestaurant').collection('menu')
         const reviewCollection = client.db('bistroRestaurant').collection('reviews')
+        const cartCollection = client.db('bistroRestaurant').collection('carts')
 
         app.get('/menus', async (req, res) => {
             const result = await menuCollection.find().toArray()
@@ -36,9 +37,17 @@ async function run() {
 
 
         app.get("/reviews", async (req, res) => {
-          const result = await reviewCollection.find().toArray();
-          res.send(result);
+            const result = await reviewCollection.find().toArray();
+            res.send(result);
         });
+
+        // cart collections 
+        app.post('/carts', async (req, res) => {
+            const item = req.body;
+            console.log(item);
+            const result = await cartCollection.insertOne(item);
+            res.send(result)
+        })
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
@@ -57,3 +66,18 @@ app.get('/', (req, res) => {
 app.listen(port, () => {
     console.log(`Bistro Server Run on Port ${port}`);
 })
+
+
+/**
+ * --------------------------
+ *      NAMING CONVENTION
+ * --------------------------
+ * 
+ * user: userCollection
+ * app.get('/users')
+ * app.get('/users/:id')
+ * app.post('/users')
+ * app.patch('/users/:id')
+ * app.put('/users/:id')
+ * app.delete('/users/:id')
+ */
