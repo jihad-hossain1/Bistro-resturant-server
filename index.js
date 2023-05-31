@@ -16,8 +16,8 @@ app.use(express.json());
 // middleware for verify jwt token
 const verifyJWT = (req, res, next) => {
     const authorization = req.headers.authorization;
-    if (authorization) {
-        return res.status(401).send({ error: true, message: 'unauthorized access' })
+    if (!authorization) {
+        return res.status(401).send({ error: true, message: 'unauthorized access' });
     }
     // bearer token
     const token = authorization.split(' ')[1];
@@ -59,8 +59,19 @@ async function run() {
             res.send({ token })
         })
 
+        // warning: use verifyJWT before using verifyAdmin
+        const verifyAdmin = async (req, res, next) => {
+            const email = req.decoded.email;
+            const query = { email: email }
+            const user = await usersCollection.findOne(query);
+            if (user?.role !== 'admin') {
+                return res.status(403).send({ error: true, message: 'forbidden message' })
+            }
+            next();
+        }
+
         // user related apis
-        app.get('/users', async (req, res) => {
+        app.get('/users', verifyJWT, verifyAdmin, async (req, res) => {
             const result = await usersCollection.find().toArray()
             res.send(result)
         })
@@ -73,6 +84,16 @@ async function run() {
                 return res.send({ message: 'user already exists' })
             }
             const result = await usersCollection.insertOne(user)
+            res.send(result)
+        })
+        app.get('/users/admin/:email', verifyJWT, async (req, res) => {
+            const email = req.params.email;
+            if (req.decoded.email !== email) {
+                res.send({ admin: false })
+            }
+            const query = { email: email }
+            const user = await usersCollection.findOne(query);
+            const result = { admin: user?.role === 'admin' }
             res.send(result)
         })
         app.patch('/users/admin/:id', async (req, res) => {
@@ -109,7 +130,7 @@ async function run() {
             }
             const decodedEmail = req.decoded.email;
             if (email !== decodedEmail) {
-                return res.status(403).send({ error: true, message: 'providen access' })
+                return res.status(403).send({ error: true, message: 'forbidden access' })
             }
             const query = { email: email };
             const result = await cartCollection.find(query).toArray();
