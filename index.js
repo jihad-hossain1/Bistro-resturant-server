@@ -55,6 +55,7 @@ async function run() {
         const menuCollection = client.db('bistroRestaurant').collection('menu')
         const reviewCollection = client.db('bistroRestaurant').collection('reviews')
         const cartCollection = client.db('bistroRestaurant').collection('carts')
+        const paymentCollection = client.db('bistroRestaurant').collection('payments')
 
         //jwt section
         app.post('/jwt', (req, res) => {
@@ -174,6 +175,19 @@ async function run() {
                 clientSecret: paymentIntent.client_secret
             })
         })
+
+        // payment related api 
+        app.post('/payments', verifyJWT, async (req, res) => {
+            const payment = req.body;
+            const insertResult = await paymentCollection.insertOne(payment)
+
+            const query = { _id: { $in: payment.cartItems.map(id => new ObjectId(id)) } }
+            const deleteResult = await cartCollection.deleteMany(query)
+            
+            res.send({ insertResult, deleteResult });
+        })
+
+
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
