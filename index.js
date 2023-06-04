@@ -1,6 +1,10 @@
 const express = require('express');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express();
+// const stripe = require("stripe")(process.env.STRIPE_KEY);
+const stripe = require("stripe")(
+  "sk_test_51NF6zvCz5HvkO88r4io3ym1nBgEMvD8m2ShSMNclDN7KIbULuCKtp6fVYI05r3SQFKI60w0w090RLpwXINIoUWBf00VyjERIz8"
+);
 const jwt = require('jsonwebtoken');
 
 const cors = require('cors');
@@ -153,6 +157,22 @@ async function run() {
             const query = { _id: new ObjectId(id) }
             const result = await cartCollection.deleteOne(query);
             res.send(result)
+        })
+
+        // create payment intent
+        app.post('/create-payment-intent',verifyJWT, async (req, res) => {
+            const { price } = req.body;
+            const amount = parseInt(price * 100);
+            // const amount = price * 100;
+            console.log(price, amount);
+            const paymentIntent = await stripe.paymentIntents.create({
+                amount: amount,
+                currency: 'usd',
+                payment_method_types: ['card']
+            }) 
+            res.send({
+                clientSecret: paymentIntent.client_secret
+            })
         })
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
